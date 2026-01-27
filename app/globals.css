@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 255, 255, 255; /* White background */
+  --background-end-rgb: 255, 255, 255; /* White background */
+  --ibfashionhub-black: 0, 0, 0; /* Black */
+  --ibfashionhub-white: 255, 255, 255; /* White */
+  --ibfashionhub-red: 252, 11, 11; /* Red accent #fc0b0b */
+  --ibfashionhub-gray: 245, 245, 245; /* Light gray */
+  --ibfashionhub-dark-gray: 115, 115, 115; /* Dark gray */
+  --ibfashionhub-border: 220, 220, 220; /* Border color */
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background-color: rgb(var(--background-start-rgb));
+}
+
+/* IBFashionHub-style classes */
+.ibfashionhub-bg-white {
+  background-color: rgb(var(--background-start-rgb));
+}
+
+.ibfashionhub-text-black {
+  color: rgb(var(--ibfashionhub-black));
+}
+
+.ibfashionhub-text-red {
+  color: rgb(var(--ibfashionhub-red));
+}
+
+.ibfashionhub-bg-red {
+  background-color: rgb(var(--ibfashionhub-red));
+}
+
+.ibfashionhub-border {
+  border-color: rgb(var(--ibfashionhub-border));
+}
+
+/* Additional utility classes */
+.text-ibfashionhub-red {
+  color: #fc0b0b !important;
+}
+
+.bg-ibfashionhub-red {
+  background-color: #fc0b0b !important;
+}
+
+.hover-text-ibfashionhub-red:hover {
+  color: #fc0b0b !important;
+}

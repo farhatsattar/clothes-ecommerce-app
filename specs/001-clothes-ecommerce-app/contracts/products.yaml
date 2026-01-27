@@ -1,0 +1,151 @@
+openapi: 3.0.0
+info:
+  title: Products API
+  version: 1.0.0
+  description: API for product management in the clothes e-commerce app
+
+paths:
+  /api/products:
+    get:
+      summary: Get all products
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  total:
+                    type: integer
+
+  /api/products/{id}:
+    get:
+      summary: Get specific product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+
+  /api/products/category/{category}:
+    get:
+      summary: Get products by category
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of products in category
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  total:
+                    type: integer
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: integer
+        category:
+          type: string
+        subcategory:
+          type: string
+        sizes:
+          type: array
+          items:
+            type: string
+        colors:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        inStock:
+          type: integer
+        isFeatured:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        rating:
+          type: number
+        numReviews:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+      required:
+        - id
+        - name
+        - price
+        - category
+        - sizes
+        - inStock
+        - isActive

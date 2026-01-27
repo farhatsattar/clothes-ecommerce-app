@@ -1,0 +1,106 @@
+openapi: 3.0.0
+info:
+  title: Authentication API
+  version: 1.0.0
+  description: API for user authentication in the clothes e-commerce app
+
+paths:
+  /api/auth/login:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+        '400':
+          description: Invalid credentials
+        '401':
+          description: Unauthorized
+
+  /api/auth/register:
+    post:
+      summary: User registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                displayName:
+                  type: string
+              required:
+                - email
+                - password
+                - displayName
+      responses:
+        '200':
+          description: Successful registration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input or email already exists
+
+  /api/auth/logout:
+    post:
+      summary: User logout
+      responses:
+        '200':
+          description: Successfully logged out
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        phoneNumber:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

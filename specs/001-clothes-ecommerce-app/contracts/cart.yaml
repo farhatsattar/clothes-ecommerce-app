@@ -1,0 +1,192 @@
+openapi: 3.0.0
+info:
+  title: Shopping Cart API
+  version: 1.0.0
+  description: API for shopping cart management in the clothes e-commerce app
+
+paths:
+  /api/cart:
+    get:
+      summary: Get user's cart
+      responses:
+        '200':
+          description: User's cart contents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CartItem'
+                  total:
+                    type: integer
+                  itemCount:
+                    type: integer
+
+  /api/cart/add:
+    post:
+      summary: Add item to cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productId:
+                  type: string
+                quantity:
+                  type: integer
+                  minimum: 1
+                size:
+                  type: string
+                color:
+                  type: string
+              required:
+                - productId
+                - quantity
+                - size
+      responses:
+        '200':
+          description: Item added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                  type: boolean
+                  cartItem:
+                    $ref: '#/components/schemas/CartItem'
+        '400':
+          description: Invalid input or insufficient stock
+        '404':
+          description: Product not found
+
+  /api/cart/update:
+    put:
+      summary: Update cart item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cartItemId:
+                  type: string
+                quantity:
+                  type: integer
+                  minimum: 1
+              required:
+                - cartItemId
+                - quantity
+      responses:
+        '200':
+          description: Cart item updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  cartItem:
+                    $ref: '#/components/schemas/CartItem'
+        '400':
+          description: Invalid input
+        '404':
+          description: Cart item not found
+
+  /api/cart/remove:
+    delete:
+      summary: Remove item from cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cartItemId:
+                  type: string
+              required:
+                - cartItemId
+      responses:
+        '200':
+          description: Item removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '404':
+          description: Cart item not found
+
+components:
+  schemas:
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        productId:
+          type: string
+        quantity:
+          type: integer
+        selectedSize:
+          type: string
+        selectedColor:
+          type: string
+        priceAtTime:
+          type: integer
+        product:
+          $ref: '#/components/schemas/Product'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - productId
+        - quantity
+        - selectedSize
+        - priceAtTime
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        price:
+          type: integer
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        sizes:
+          type: array
+          items:
+            type: string
+        colors:
+          type: array
+          items:
+            type: string
+        inStock:
+          type: integer
+      required:
+        - id
+        - name
+        - price

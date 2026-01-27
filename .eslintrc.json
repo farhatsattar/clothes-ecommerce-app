@@ -1,0 +1,10 @@
+{
+  "extends": ["next/core-web-vitals", "eslint:recommended"],
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-console": "warn",
+    "no-duplicate-imports": "error",
+    "@typescript-eslint/explicit-function-return-type": "warn",
+    "@typescript-eslint/no-explicit-any": "warn"
+  }
+}

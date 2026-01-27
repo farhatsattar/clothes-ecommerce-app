@@ -1,0 +1,88 @@
+openapi: 3.0.0
+info:
+  title: WhatsApp Integration API
+  version: 1.0.0
+  description: API for WhatsApp chatbot integration in the clothes e-commerce app
+
+paths:
+  /api/whatsapp-webhook:
+    post:
+      summary: Handle incoming WhatsApp messages
+      description: Webhook endpoint for receiving messages from Twilio's WhatsApp API
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                From:
+                  type: string
+                  description: WhatsApp number of the sender
+                To:
+                  type: string
+                  description: WhatsApp number of the recipient
+                Body:
+                  type: string
+                  description: Message body content
+                MessageSid:
+                  type: string
+                  description: Unique identifier for the message
+                AccountSid:
+                  type: string
+                  description: Twilio account identifier
+      responses:
+        '200':
+          description: Message processed successfully
+          content:
+            application/xml:
+              schema:
+                type: string
+                description: TwiML response to send back to Twilio
+
+components:
+  schemas:
+    WhatsAppMessage:
+      type: object
+      properties:
+        from:
+          type: string
+          description: WhatsApp number of the sender
+        to:
+          type: string
+          description: WhatsApp number of the recipient
+        body:
+          type: string
+          description: Message content
+        messageId:
+          type: string
+          description: Unique identifier for the message
+        timestamp:
+          type: string
+          format: date-time
+          description: When the message was received
+        mediaUrl:
+          type: string
+          format: uri
+          description: URL to media attachment if present
+        mediaContentType:
+          type: string
+          description: Content type of media attachment
+      required:
+        - from
+        - to
+        - body
+        - messageId
+        - timestamp
+
+    WhatsAppResponse:
+      type: object
+      properties:
+        body:
+          type: string
+          description: Response message to send back
+        mediaUrl:
+          type: string
+          format: uri
+          description: Optional media URL to send back
+      required:
+        - body

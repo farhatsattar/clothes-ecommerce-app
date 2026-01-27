@@ -1,55 +1,103 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT:
+- Version change: 1.0.0 → 1.1.0
+- Modified principles: [PRINCIPLE_1_NAME] → I. Accuracy, [PRINCIPLE_2_NAME] → II. Clarity, [PRINCIPLE_3_NAME] → III. Security, [PRINCIPLE_4_NAME] → IV. Reliability
+- Added sections: Product Management, Authentication, Checkout, Frontend Quality, Backend Integrity, Testing
+- Removed sections: [PRINCIPLE_5_NAME], [PRINCIPLE_6_NAME], [SECTION_2_NAME], [SECTION_3_NAME]
+- Templates requiring updates: ✅ updated / ⚠ pending - .specify/templates/plan-template.md, .specify/templates/spec-template.md, .specify/templates/tasks-template.md
+- Follow-up TODOs: RATIFICATION_DATE needs to be set to original adoption date
+-->
+# Clothes E-Commerce App Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Accuracy
+All product data (price, size, stock) must be accurate and synced with the backend.
+<!-- Rationale: Ensuring customers receive correct information about products is critical for trust and business success -->
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Clarity
+UI/UX should be intuitive, responsive, and accessible to a general audience.
+<!-- Rationale: A clear, accessible interface improves user experience and broadens market reach -->
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Security
+User authentication, session management, and payment processes must be secure.
+<!-- Rationale: Protecting customer data and transactions is essential for legal compliance and trust -->
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Reliability
+Cart, orders, and checkout processes must function consistently across devices.
+<!-- Rationale: Reliable core processes ensure customer satisfaction and business continuity -->
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+## Additional Standards
 
-### [PRINCIPLE_6_NAME]
+### Product Management
+Admins must be able to add, update, and delete products accurately.
+<!-- Rationale: Efficient product management is crucial for maintaining an up-to-date inventory -->
 
+### Authentication
+Login, registration, and password recovery must use Firebase Auth securely.
+<!-- Rationale: Secure authentication protects user accounts and personal information -->
 
-[PRINCIPLE__DESCRIPTION]
+### Checkout
+Cash-on-Delivery checkout flow must be functional; online payment integration optional for Phase 2.
+<!-- Rationale: Supporting Cash-on-Delivery meets customer preferences and market requirements -->
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### Frontend Quality
+All screens must be responsive with Tailwind CSS and accessible.
+<!-- Rationale: Responsive design ensures optimal experience across all devices and accessibility requirements -->
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### Backend Integrity
+Next.js API routes and Firebase Firestore must maintain data consistency.
+<!-- Rationale: Data integrity is essential for reliable operation and accurate information -->
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### Testing
+Unit tests and manual QA must verify cart, checkout, and authentication flows.
+<!-- Rationale: Comprehensive testing ensures reliable functionality and user experience -->
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Constraints
+
+### Platform
+Next.js (App Router) + Tailwind CSS + Firebase
+
+### Pages
+- Home
+- Products
+- ProductDetail
+- Cart
+- Checkout
+- Login
+- Profile
+
+### Security
+Authentication via Firebase; sensitive actions require session verification.
+
+### Deployment
+Vercel free tier for frontend; Firebase free tier for backend.
+
+### Data
+Product images hosted in Firebase Storage; products stored in Firestore.
+
+### Payments
+Phase 1: Cash on Delivery only.
+
+## Success Criteria
+
+### Functional App
+All core flows (browse, add to cart, login, checkout) must work correctly.
+
+### Secure Auth
+Login and registration flows must prevent unauthorized access.
+
+### Data Integrity
+Product, cart, and order data must remain consistent and error-free.
+
+### Responsive UI
+Application must display correctly on desktop and mobile screens.
+
+### No Critical Bugs
+No blocking issues in checkout, authentication, or product management flows.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): Date of original adoption | **Last Amended**: 2026-01-07
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+All development must align with these principles. Any deviation requires explicit justification and approval. Code reviews must verify compliance with these standards. Development workflows, testing requirements, and deployment procedures must support these core principles.
