@@ -1,5 +1,6 @@
 import { CartProvider } from '../lib/context/cart-context';
 import { AuthProvider } from '../lib/context/auth-context';
+import { WishlistProvider } from '../lib/context/wishlist-context';
 import './globals.css';
 import { ReactNode } from 'react';
 
@@ -16,7 +17,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <AuthProvider>
           <CartProvider>
-            {children}
+            <WishlistProvider>
+              {children}
+            </WishlistProvider>
           </CartProvider>
         </AuthProvider>
       </body>

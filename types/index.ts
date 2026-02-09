@@ -71,7 +71,7 @@ export interface OrderItem {
   review?: string;
 
 }
-export type OrderStatus = 'pending' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 export type Order = OrderData;
 
 
@@ -84,7 +84,7 @@ export interface OrderData {
   billingAddress?: Address | null;
   notes?: string;
   paymentMethod: string;
-  status: 'pending' | 'delivered' | 'cancelled';
+  status: OrderStatus;
   totalAmount: number;
   createdAt: Date;
   updatedAt: Date;

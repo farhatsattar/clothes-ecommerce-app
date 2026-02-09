@@ -1,0 +1,52 @@
+rules_version = '2';
+// Firestore Security Rules for IBFashionHub ecommerce app.
+// Deploy with: firebase deploy --only firestore:rules (from project root after firebase init)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Products: anyone can read (catalog); only admins can write (manage products)
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null
+        && request.auth.token.admin == true;
+
+      // Product ratings: authenticated users can read; owner can write their rating
+      match /ratings/{ratingId} {
+        allow read: if true;
+        allow create, update, delete: if request.auth != null
+          && (request.auth.uid == ratingId || request.auth.token.admin == true);
+      }
+    }
+
+    // Users: each user can read/write their own document; admins can read any user (admin users page)
+    match /users/{userId} {
+      allow read: if request.auth != null
+        && (request.auth.uid == userId || request.auth.token.admin == true);
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+
+      // User orders: only the owner can read/write
+      match /orders/{orderId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // User cart: single doc at users/{userId}/cart/items
+      match /cart/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // User wishlist: single doc at users/{userId}/wishlist/items
+      match /wishlist/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Collection group "orders": allow read for admin only (admin orders page)
+    match /{path=**}/orders/{orderId} {
+      allow read: if request.auth != null && request.auth.token.admin == true;
+      allow write: if false;
+    }
+  }
+}
+

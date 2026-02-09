@@ -1,17 +1,34 @@
 import { NextResponse } from 'next/server';
 import { CartItem } from '@/types';
-
-// In-memory cart for demo purposes
-// In a real implementation, this would be stored in a database
-let cart: CartItem[] = [];
+import {
+  getUserCart,
+  addToCart,
+  updateCartItem,
+  removeFromCart
+} from '@/lib/services/cart';
 
 export async function GET(request: Request) {
   try {
+    // Extract user ID from headers or query parameters
+    // In a real app, this would come from authentication
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'User ID is required to access cart'
+        },
+        { status: 400 }
+      );
+    }
+
+    const cartData = await getUserCart(userId);
+
     return NextResponse.json({
       success: true,
-      items: cart,
-      total: cart.reduce((sum, item) => sum + item.priceAtTime * item.quantity, 0),
-      itemCount: cart.reduce((count, item) => count + item.quantity, 0)
+      ...cartData
     });
   } catch (error) {
     console.error('Error fetching cart:', error);
@@ -32,51 +49,28 @@ export async function POST(request: Request) {
   try {
     const { productId, quantity, selectedSize, selectedColor, userId } = await request.json();
 
-    if (!productId || !quantity || !selectedSize || !selectedColor) {
+    if (!productId || !quantity || !selectedSize || !selectedColor || !userId) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields: productId, quantity, selectedSize, or selectedColor'
+          error: 'Missing required fields: productId, quantity, selectedSize, selectedColor, or userId'
         },
         { status: 400 }
       );
     }
 
-    // Check if item already exists in cart
-    const existingItemIndex = cart.findIndex(item =>
-      item.productId === productId &&
-      item.selectedSize === selectedSize &&
-      item.selectedColor === selectedColor
-    );
-
-    if (existingItemIndex !== -1) {
-      // Update quantity if item exists
-      cart[existingItemIndex] = {
-        ...cart[existingItemIndex],
-        quantity: cart[existingItemIndex].quantity + quantity,
-        updatedAt: new Date()
-      };
-    } else {
-      // Add new item to cart
-      const newItem: CartItem = {
-        id: `${productId}-${selectedSize}-${selectedColor}`,
-        userId: userId || 'guest',
-        productId,
-        quantity,
-        selectedSize,
-        selectedColor,
-        priceAtTime: 0, // This would be populated from product data in a real implementation
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      cart.push(newItem);
-    }
+    const cartData = await addToCart(userId, {
+      userId,
+      productId,
+      quantity,
+      selectedSize,
+      selectedColor,
+      priceAtTime: 0, // This would be populated from product data in a real implementation
+    });
 
     return NextResponse.json({
       success: true,
-      item: cart[existingItemIndex !== -1 ? existingItemIndex : cart.length - 1],
-      total: cart.reduce((sum, item) => sum + item.priceAtTime * item.quantity, 0),
-      itemCount: cart.reduce((count, item) => count + item.quantity, 0)
+      ...cartData
     });
   } catch (error) {
     console.error('Error adding to cart:', error);
@@ -92,47 +86,23 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { itemId, quantity } = await request.json();
+    const { itemId, quantity, userId } = await request.json();
 
-    if (!itemId || quantity === undefined) {
+    if (!itemId || quantity === undefined || !userId) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields: itemId or quantity'
+          error: 'Missing required fields: itemId, quantity, or userId'
         },
         { status: 400 }
       );
     }
 
-    const itemIndex = cart.findIndex(item => item.id === itemId);
-
-    if (itemIndex === -1) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Item not found in cart'
-        },
-        { status: 404 }
-      );
-    }
-
-    if (quantity <= 0) {
-      // Remove item if quantity is 0 or less
-      cart.splice(itemIndex, 1);
-    } else {
-      // Update quantity
-      cart[itemIndex] = {
-        ...cart[itemIndex],
-        quantity,
-        updatedAt: new Date()
-      };
-    }
+    const cartData = await updateCartItem(userId, itemId, quantity);
 
     return NextResponse.json({
       success: true,
-      items: cart,
-      total: cart.reduce((sum, item) => sum + item.priceAtTime * item.quantity, 0),
-      itemCount: cart.reduce((count, item) => count + item.quantity, 0)
+      ...cartData
     });
   } catch (error) {
     console.error('Error updating cart:', error);
@@ -148,36 +118,23 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { itemId } = await request.json();
+    const { itemId, userId } = await request.json();
 
-    if (!itemId) {
+    if (!itemId || !userId) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required field: itemId'
+          error: 'Missing required fields: itemId or userId'
         },
         { status: 400 }
       );
     }
 
-    const initialLength = cart.length;
-    cart = cart.filter(item => item.id !== itemId);
-
-    if (cart.length === initialLength) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Item not found in cart'
-        },
-        { status: 404 }
-      );
-    }
+    const cartData = await removeFromCart(userId, itemId);
 
     return NextResponse.json({
       success: true,
-      items: cart,
-      total: cart.reduce((sum, item) => sum + item.priceAtTime * item.quantity, 0),
-      itemCount: cart.reduce((count, item) => count + item.quantity, 0)
+      ...cartData
     });
   } catch (error) {
     console.error('Error removing from cart:', error);

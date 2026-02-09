@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { loginUser } from '@/firebase/auth';
@@ -66,6 +67,15 @@ const LoginClient: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full border px-3 py-2 rounded"
               />
+            </div>
+
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-ibfashionhub-red hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
 
             <Button

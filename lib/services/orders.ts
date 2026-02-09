@@ -1,5 +1,6 @@
 import {
   collection,
+  collectionGroup,
   query,
   where,
   orderBy,
@@ -53,6 +54,32 @@ export const getUserOrders = async (userId: string, constraints: QueryConstraint
 
 export const getAllUserOrders = async (userId: string): Promise<{ success: boolean; orders: Order[]; error?: string }> => {
   return await getUserOrders(userId, [orderBy('createdAt', 'desc')]);
+};
+
+/**
+ * Fetches ALL orders across all users (admin). Uses Firestore collectionGroup('orders').
+ * Requires a composite index on collection group "orders" for createdAt desc.
+ */
+export const getAllOrders = async (): Promise<{ success: boolean; orders: Order[]; error?: string }> => {
+  try {
+    const q = query(
+      collectionGroup(db, 'orders'),
+      orderBy('createdAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+
+    const orders: Order[] = [];
+    snapshot.forEach((docSnap) => {
+      const userId = docSnap.ref.parent.parent?.id ?? '';
+      const data = convertTimestamps(docSnap.data());
+      orders.push({ id: docSnap.id, userId, ...data } as Order);
+    });
+
+    return { success: true, orders };
+  } catch (error) {
+    console.error('Error fetching all orders (collectionGroup):', error);
+    return { success: false, orders: [], error: (error as Error).message };
+  }
 };
 
 export const getOrderById = async (userId: string, orderId: string): Promise<{ success: boolean; order?: Order; error?: string }> => {

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Product } from '@/types';
 import Button from '@/components/ui/Button';
 import { useCart } from '@/lib/context/cart-context';
+import WishlistButton from '@/components/wishlist/WishlistButton';
 
 interface ProductCardProps {
   product: Product;
@@ -25,7 +26,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       {/* 🔹 ONLY image + info wrapped in Link */}
       <Link href={`/products/${product.id}`}>
-        <div className="cursor-pointer">
+        <div className="cursor-pointer relative">
           {(product.images && product.images.length > 0 && product.images[0]) ? (
             <img
               src={product.images[0]}
@@ -43,6 +44,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               <span>No image</span>
             </div>
           )}
+
+          {/* Wishlist button positioned at top-right corner */}
+          <div className="absolute top-2 right-2">
+            <WishlistButton productId={product.id} size="medium" />
+          </div>
 
           <div className="p-4">
             <h3 className="text-lg font-medium">{product.name}</h3>

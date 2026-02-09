@@ -1,9 +1,15 @@
 'use client';
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, Suspense } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useCart } from '@/lib/context/cart-context';
+import { useAuth } from '@/lib/context/auth-context';
+import { StripeProvider } from '@/components/providers/StripeProvider';
+import SearchBar from '@/components/search/SearchBar';
+import LogoutButton from '@/components/auth/LogoutButton';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -17,6 +23,8 @@ const MainLayout = ({
   description = 'Shop for the latest fashion trends in Pakistan',
 }: MainLayoutProps) => {
   const { cart } = useCart();
+  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = React.useState(false);
   const cartItemCount = cart.items.reduce((total, item) => total + item.quantity, 0);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
@@ -34,6 +42,27 @@ const MainLayout = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  React.useEffect(() => {
+  const auth = getAuth();
+
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    try {
+      const token = await user.getIdTokenResult();
+      setIsAdmin(token.claims.admin === true);
+    } catch (err) {
+      setIsAdmin(false);
+    }
+  });
+
+  return () => unsubscribe();
+}, []);
+
 
   return (
     <>
@@ -61,6 +90,18 @@ const MainLayout = ({
               {/* Navigation */}
               <nav className="hidden md:block">
                 <ul className="flex space-x-8">
+                  {/* ADMIN LINK */}
+{isAdmin && (
+  <li>
+    <Link
+      href="/admin"
+      className="text-red-600 hover:text-red-700 font-semibold transition-colors duration-300 uppercase text-sm tracking-wide"
+    >
+      Admin
+    </Link>
+  </li>
+)}
+
                   <li className="relative group">
                     <Link
                       href="/products?category=men"
@@ -121,6 +162,15 @@ const MainLayout = ({
                     >
                       SALE
                     </Link>
+                    {isAdmin && (
+  <Link
+    href="/admin"
+    className="block px-3 py-2 rounded-md text-base font-semibold text-red-600 hover:bg-gray-50"
+  >
+    Admin Panel
+  </Link>
+)}
+
                   </li>
                 </ul>
               </nav>
@@ -128,16 +178,9 @@ const MainLayout = ({
               {/* Search, Dropdown Menu, Login, Cart Icons */}
               <div className="flex items-center space-x-4">
                 <div className="hidden md:block relative">
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="py-1 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-ibfashionhub-red focus:border-transparent"
-                  />
-                  <button className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </button>
+                  <Suspense fallback={<div className="w-64 h-10 bg-gray-200 rounded-md animate-pulse"></div>}>
+                    <SearchBar placeholder="Search products..." />
+                  </Suspense>
                 </div>
 
                 {/* Dropdown Menu */}
@@ -155,7 +198,7 @@ const MainLayout = ({
                </button>
 
              {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg z-50 rounded-md">
+              <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg z-50 rounded-md hidden md:block">
               <div className="py-1">
 
              <Link href="/about" onClick={() => setIsDropdownOpen(false)}
@@ -199,22 +242,43 @@ const MainLayout = ({
   )}
 </div>
 
+                {/* Desktop only: wishlist, orders, login, cart icons */}
+                <div className="hidden md:flex items-center space-x-4">
+                <Link
+                  href="/wishlist"
+                  className="text-gray-700 hover:text-ibfashionhub-red transition-colors duration-300 relative"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </Link>
                 <Link
                   href="/profile/orders"
                   className="text-gray-700 hover:text-ibfashionhub-red transition-colors duration-300"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2" />
                   </svg>
                 </Link>
-                <Link
-                  href="/login"
-                  className="text-gray-700 hover:text-ibfashionhub-red transition-colors duration-300"
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </Link>
+                {user ? (
+                  <LogoutButton
+                    variant="link"
+                    className="text-gray-700 hover:text-ibfashionhub-red transition-colors duration-300 p-1"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </LogoutButton>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="text-gray-700 hover:text-ibfashionhub-red transition-colors duration-300"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </Link>
+                )}
 
                 <Link
                   href="/cart"
@@ -240,18 +304,13 @@ const MainLayout = ({
                     </span>
                   )}
                 </Link>
-
-                {/* Mobile menu button */}
-                <button className="md:hidden ml-2 p-1 text-gray-700 hover:text-ibfashionhub-red">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Mobile Navigation */}
+          {/* Mobile Navigation - toggled by hamburger, single menu on mobile */}
+          {isDropdownOpen && (
           <div className="md:hidden bg-white border-t">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               <div className="flex justify-between items-center">
@@ -263,53 +322,62 @@ const MainLayout = ({
                   <span className="font-light">BFASHIONHUB</span>
                 </Link>
                 <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="py-1 px-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-ibfashionhub-red focus:border-transparent"
-                  />
-                  <button className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </button>
+                  <Suspense fallback={<div className="w-64 h-10 bg-gray-200 rounded-md animate-pulse"></div>}>
+                    <SearchBar placeholder="Search products..." />
+                  </Suspense>
                 </div>
               </div>
 
               <Link
                 href="/products?category=men"
+                onClick={() => setIsDropdownOpen(false)}
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-ibfashionhub-red hover:bg-gray-50 uppercase tracking-wide"
               >
                 Men
               </Link>
               <Link
                 href="/products?category=women"
+                onClick={() => setIsDropdownOpen(false)}
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-ibfashionhub-red hover:bg-gray-50 uppercase tracking-wide"
               >
                 Women
               </Link>
               <Link
-                href="/products?category=juniors"
+                href="/products?category=kids"
+                onClick={() => setIsDropdownOpen(false)}
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-ibfashionhub-red hover:bg-gray-50 uppercase tracking-wide"
               >
                 Kids
               </Link>
               <Link
                 href="/products?sale=true"
+                onClick={() => setIsDropdownOpen(false)}
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-ibfashionhub-red hover:bg-gray-50 uppercase tracking-wide"
               >
                 SALE
               </Link>
 
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setIsDropdownOpen(false)}
+                  className="block px-3 py-2 rounded-md text-base font-semibold text-red-600 hover:bg-gray-50 uppercase tracking-wide"
+                >
+                  Admin
+                </Link>
+              )}
+
               {/* Additional Links */}
               <Link
                 href="/about"
+                onClick={() => setIsDropdownOpen(false)}
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-ibfashionhub-red hover:bg-gray-50"
               >
                 About
               </Link>
               <Link
                 href="/contact"
+                onClick={() => setIsDropdownOpen(false)}
                 className="block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-ibfashionhub-red hover:bg-gray-50"
               >
                 Contact
@@ -317,7 +385,18 @@ const MainLayout = ({
 
               <div className="flex justify-between pt-2 border-t border-gray-200">
                 <Link
+                  href="/wishlist"
+                  onClick={() => setIsDropdownOpen(false)}
+                  className="flex items-center text-gray-700 hover:text-ibfashionhub-red"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  Wishlist
+                </Link>
+                <Link
                   href="/profile/orders"
+                  onClick={() => setIsDropdownOpen(false)}
                   className="flex items-center text-gray-700 hover:text-ibfashionhub-red"
                 >
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -325,17 +404,32 @@ const MainLayout = ({
                   </svg>
                   Orders
                 </Link>
-                <Link
-                  href="/login"
-                  className="flex items-center text-gray-700 hover:text-ibfashionhub-red"
-                >
-                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  Account
-                </Link>
+                {user ? (
+                  <LogoutButton
+                    variant="link"
+                    className="flex items-center text-gray-700 hover:text-ibfashionhub-red w-full text-left"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Log out
+                  </LogoutButton>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center text-gray-700 hover:text-ibfashionhub-red"
+                  >
+                    <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Account
+                  </Link>
+                )}
                 <Link
                   href="/cart"
+                  onClick={() => setIsDropdownOpen(false)}
                   className="flex items-center text-gray-700 hover:text-ibfashionhub-red relative"
                 >
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -356,10 +450,15 @@ const MainLayout = ({
               </div>
             </div>
           </div>
+          )}
         </header>
 
         {/* Main Content */}
-        <main className="flex-grow">{children}</main>
+        <main className="flex-grow">
+          <StripeProvider>
+            {children}
+          </StripeProvider>
+        </main>
 
         {/* Footer */}
         <footer className="bg-white text-gray-900 border-t border-gray-200">
@@ -466,3 +565,5 @@ const MainLayout = ({
 };
 
 export default MainLayout;
+
+

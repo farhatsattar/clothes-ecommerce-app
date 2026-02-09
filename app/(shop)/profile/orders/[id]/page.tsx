@@ -149,3 +149,5 @@ const OrderDetailPage: React.FC = () => {
 };
 
 export default OrderDetailPage;
+
+export const dynamic = 'force-dynamic';

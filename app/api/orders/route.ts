@@ -118,9 +118,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (paymentMethod !== 'COD') {
+    // Allow multiple payment methods
+    const validPaymentMethods = ['COD', 'Cash on Delivery', 'Credit Card (Stripe)', 'credit_card'];
+    if (!validPaymentMethods.includes(paymentMethod)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid payment method. Only COD is supported.' },
+        { success: false, error: 'Invalid payment method.' },
         { status: 400 }
       );
     }

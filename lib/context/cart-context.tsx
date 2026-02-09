@@ -11,10 +11,10 @@ import { Product } from '@/types';
 import { useAuth } from '@/lib/context/auth-context';
 import {
   getUserCart,
-  addItemToCart,
-  removeItemFromCart,
-  updateCartItem,
-  clearUserCart,
+  addToCart as addToFirestoreCart,
+  updateCartItem as updateFirestoreCartItem,
+  removeFromCart as removeFromFirestoreCart,
+  clearCart as clearFirestoreCart,
 } from '@/lib/services/cart';
 
 /* ================= TYPES ================= */
@@ -145,8 +145,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const loadCart = async () => {
       try {
-        const { success, items } = await getUserCart(user.uid);
-        if (success) dispatch({ type: 'SET_CART', payload: items as CartItem[] });
+        const { items } = await getUserCart(user.uid);
+        dispatch({ type: 'SET_CART', payload: items as CartItem[] });
       } catch (err) {
         console.error(err);
       }
@@ -183,7 +183,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'ADD_ITEM', payload: cartItem });
 
     if (user) {
-      addItemToCart(user.uid, cartItem).catch(console.error);
+      addToFirestoreCart(user.uid, {
+        userId: cartItem.userId,
+        productId: cartItem.productId,
+        quantity: cartItem.quantity,
+        selectedSize: cartItem.selectedSize,
+        selectedColor: cartItem.selectedColor,
+        priceAtTime: cartItem.priceAtTime,
+      }).catch(console.error);
     }
   };
 
@@ -191,7 +198,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'REMOVE_ITEM', payload: itemId });
 
     if (user) {
-      removeItemFromCart(user.uid, itemId).catch(console.error);
+      removeFromFirestoreCart(user.uid, itemId).catch(console.error);
     }
   };
 
@@ -201,7 +208,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'UPDATE_QUANTITY', payload: { itemId, quantity } });
 
     if (user) {
-      updateCartItem(user.uid, itemId, { quantity }).catch(console.error);
+      updateFirestoreCartItem(user.uid, itemId, quantity).catch(console.error);
     }
   };
 
@@ -209,7 +216,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'CLEAR_CART' });
 
     if (user) {
-      clearUserCart(user.uid).catch(console.error);
+      clearFirestoreCart(user.uid).catch(console.error);
     } else {
       localStorage.removeItem('cart');
     }

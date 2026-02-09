@@ -1,176 +1,305 @@
 import {
   collection,
+  getDocs,
+  getDoc,
+  doc,
   query,
   where,
   orderBy,
   limit,
-  getDocs,
-  getDoc,
-  doc,
+  startAfter,
+  QueryDocumentSnapshot,
+  DocumentData,
+  serverTimestamp,
   addDoc,
   updateDoc,
   deleteDoc,
-  serverTimestamp,
-  QueryConstraint
+  Timestamp
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Product } from '@/types';
-import { convertTimestamps, getDocumentsWithConversion, addDocumentWithTimestamps, updateDocumentWithTimestamp } from '@/lib/utils/firestore';
 
-// Product service functions
-export const createProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ success: boolean; id?: string; error?: string }> => {
+/**
+ * Fetches all products from Firestore with optional filtering and pagination
+ */
+export const getProducts = async (
+  category?: string,
+  limitCount?: number,
+  lastVisible?: QueryDocumentSnapshot<DocumentData>
+): Promise<{ products: Product[]; lastVisible: QueryDocumentSnapshot<DocumentData> | null; hasMore: boolean }> => {
   try {
-    const docRef = await addDoc(collection(db, 'products'), {
+    let q = query(collection(db, 'products'));
+
+    // Add category filter if provided
+    if (category) {
+      q = query(q, where('category', '==', category.toLowerCase()));
+    }
+
+    // Add ordering by createdAt
+    q = query(q, orderBy('createdAt', 'desc'));
+
+    // Add limit if provided
+    if (limitCount) {
+      q = query(q, limit(limitCount + 1)); // Get one extra to check if there are more
+    }
+
+    // Add cursor if provided
+    if (lastVisible) {
+      q = query(q, startAfter(lastVisible));
+    }
+
+    const snapshot = await getDocs(q);
+
+    let products: Product[] = [];
+    let hasMore = false;
+
+    if (limitCount && snapshot.size > limitCount) {
+      // Remove the extra document we fetched to check if there are more
+      products = snapshot.docs.slice(0, -1).map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as Product));
+      hasMore = true;
+    } else {
+      products = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as Product));
+    }
+
+    const lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+
+    return {
+      products,
+      lastVisible: hasMore ? lastVisibleDoc : null,
+      hasMore
+    };
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a single product by ID from Firestore
+ */
+export const getProductById = async (productId: string): Promise<Product | null> => {
+  try {
+    const productRef = doc(db, 'products', productId);
+    const snapshot = await getDoc(productRef);
+
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    const productData = snapshot.data();
+    return {
+      id: snapshot.id,
+      ...productData,
+    } as Product;
+  } catch (error) {
+    console.error('Error fetching product by ID:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches products by category from Firestore
+ */
+export const getProductsByCategory = async (
+  category: string,
+  limitCount?: number,
+  lastVisible?: QueryDocumentSnapshot<DocumentData>
+): Promise<{ products: Product[]; lastVisible: QueryDocumentSnapshot<DocumentData> | null; hasMore: boolean }> => {
+  try {
+    let q = query(
+      collection(db, 'products'),
+      where('category', '==', category.toLowerCase()),
+      orderBy('createdAt', 'desc')
+    );
+
+    // Add limit if provided
+    if (limitCount) {
+      q = query(q, limit(limitCount + 1)); // Get one extra to check if there are more
+    }
+
+    // Add cursor if provided
+    if (lastVisible) {
+      q = query(q, startAfter(lastVisible));
+    }
+
+    const snapshot = await getDocs(q);
+
+    let products: Product[] = [];
+    let hasMore = false;
+
+    if (limitCount && snapshot.size > limitCount) {
+      // Remove the extra document we fetched to check if there are more
+      products = snapshot.docs.slice(0, -1).map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as Product));
+      hasMore = true;
+    } else {
+      products = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      } as Product));
+    }
+
+    const lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+
+    return {
+      products,
+      lastVisible: hasMore ? lastVisibleDoc : null,
+      hasMore
+    };
+  } catch (error) {
+    console.error('Error fetching products by category:', error);
+    throw error;
+  }
+};
+
+/**
+ * Creates a new product in Firestore
+ */
+export const createProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    const productRef = await addDoc(collection(db, 'products'), {
       ...productData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      isActive: true
+      isActive: true, // Default to active
     });
 
-    return { success: true, id: docRef.id };
+    return productRef.id;
   } catch (error) {
     console.error('Error creating product:', error);
-    return { success: false, error: (error as Error).message };
+    throw error;
   }
 };
 
-export const getAllProducts = async (constraints: QueryConstraint[] = []): Promise<{ success: boolean; products: Product[]; error?: string }> => {
+/**
+ * Updates an existing product in Firestore
+ */
+export const updateProduct = async (productId: string, productData: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>): Promise<void> => {
   try {
-    const q = query(collection(db, 'products'), ...constraints);
-    const snapshot = await getDocs(q);
+    const productRef = doc(db, 'products', productId);
 
-    const products: Product[] = [];
-    snapshot.forEach((doc) => {
-      const data = convertTimestamps(doc.data());
-      products.push({ id: doc.id, ...data } as Product);
+    await updateDoc(productRef, {
+      ...productData,
+      updatedAt: serverTimestamp(),
     });
-
-    return { success: true, products };
   } catch (error) {
-    console.error('Error getting all products:', error);
-    return { success: false, products: [], error: (error as Error).message };
+    console.error('Error updating product:', error);
+    throw error;
   }
 };
 
-export const getActiveProducts = async (): Promise<{ success: boolean; products: Product[]; error?: string }> => {
-  return await getAllProducts([where('isActive', '==', true), orderBy('createdAt', 'desc')]);
+/**
+ * Deletes a product from Firestore
+ */
+export const deleteProduct = async (productId: string): Promise<void> => {
+  try {
+    const productRef = doc(db, 'products', productId);
+
+    await deleteDoc(productRef);
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    throw error;
+  }
 };
 
-export const getProductById = async (id: string): Promise<{ success: boolean; product?: Product; error?: string }> => {
-  try {
-    const docRef = doc(db, 'products', id);
-    const snapshot = await getDoc(docRef);
+/**
+ * Converts Firestore Timestamps to Date objects in a product
+ */
+export const convertTimestampsInProduct = (product: any): Product => {
+  return {
+    ...product,
+    createdAt: product.createdAt instanceof Timestamp ? product.createdAt.toDate() : product.createdAt,
+    updatedAt: product.updatedAt instanceof Timestamp ? product.updatedAt.toDate() : product.updatedAt,
+  } as Product;
+};
 
-    if (!snapshot.exists()) {
-      return { success: false, error: 'Product not found' };
+/**
+ * Converts Firestore Timestamps to Date objects in an array of products
+ */
+export const convertTimestampsInProducts = (products: any[]): Product[] => {
+  return products.map(convertTimestampsInProduct);
+};
+
+/**
+ * Search for products by name, description, category, or tags
+ */
+export const searchProducts = async (
+  searchTerm: string,
+  category?: string,
+  limitCount?: number,
+  lastVisible?: QueryDocumentSnapshot<DocumentData>
+): Promise<{ products: Product[]; lastVisible: QueryDocumentSnapshot<DocumentData> | null; hasMore: boolean }> => {
+  try {
+    // Build the query
+    let q = query(collection(db, 'products'));
+
+    // Add category filter if provided
+    if (category) {
+      q = query(q, where('category', '==', category.toLowerCase()));
     }
 
-    const data = convertTimestamps(snapshot.data());
-    const product = { id: snapshot.id, ...data } as Product;
+    // Add ordering by name for consistent results
+    q = query(q, orderBy('name', 'asc'));
 
-    return { success: true, product };
-  } catch (error) {
-    console.error(`Error getting product by ID (${id}):`, error);
-    return { success: false, error: (error as Error).message };
-  }
-};
+    // Add limit if provided
+    if (limitCount) {
+      q = query(q, limit(limitCount + 1)); // Get one extra to check if there are more
+    }
 
-export const getProductsByCategory = async (category: string): Promise<{ success: boolean; products: Product[]; error?: string }> => {
-  try {
-    const q = query(
-      collection(db, 'products'),
-      where('category', '==', category),
-      where('isActive', '==', true),
-      orderBy('createdAt', 'desc')
-    );
+    // Add cursor if provided
+    if (lastVisible) {
+      q = query(q, startAfter(lastVisible));
+    }
 
     const snapshot = await getDocs(q);
 
-    const products: Product[] = [];
-    snapshot.forEach((doc) => {
-      const data = convertTimestamps(doc.data());
-      products.push({ id: doc.id, ...data } as Product);
-    });
+    let allProducts: Product[] = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    } as Product));
 
-    return { success: true, products };
+    // If there's a search term, filter results on the client side
+    // Note: For production apps, you'd want to use a search service like Algolia or Elasticsearch
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      allProducts = allProducts.filter(product =>
+        product.name.toLowerCase().includes(term) ||
+        product.description.toLowerCase().includes(term) ||
+        product.tags?.some(tag => tag.toLowerCase().includes(term)) ||
+        product.category.toLowerCase().includes(term)
+      );
+    }
+
+    let products: Product[] = [];
+    let hasMore = false;
+
+    if (limitCount && allProducts.length > limitCount) {
+      // Remove the extra document we fetched to check if there are more
+      products = allProducts.slice(0, limitCount);
+      hasMore = true;
+    } else {
+      products = allProducts;
+    }
+
+    // Since we're filtering on client side, we need to determine the last visible doc differently
+    // We'll return the last doc from the original query results
+    const lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+
+    return {
+      products,
+      lastVisible: hasMore ? lastVisibleDoc : null,
+      hasMore
+    };
   } catch (error) {
-    console.error(`Error getting products by category (${category}):`, error);
-    return { success: false, products: [], error: (error as Error).message };
-  }
-};
-
-export const getFeaturedProducts = async (): Promise<{ success: boolean; products: Product[]; error?: string }> => {
-  try {
-    const q = query(
-      collection(db, 'products'),
-      where('isFeatured', '==', true),
-      where('isActive', '==', true),
-      orderBy('createdAt', 'desc')
-    );
-
-    const snapshot = await getDocs(q);
-
-    const products: Product[] = [];
-    snapshot.forEach((doc) => {
-      const data = convertTimestamps(doc.data());
-      products.push({ id: doc.id, ...data } as Product);
-    });
-
-    return { success: true, products };
-  } catch (error) {
-    console.error('Error getting featured products:', error);
-    return { success: false, products: [], error: (error as Error).message };
-  }
-};
-
-export const updateProduct = async (id: string, productData: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>): Promise<{ success: boolean; error?: string }> => {
-  try {
-    const docRef = doc(db, 'products', id);
-    await updateDoc(docRef, {
-      ...productData,
-      updatedAt: serverTimestamp()
-    });
-
-    return { success: true };
-  } catch (error) {
-    console.error(`Error updating product (${id}):`, error);
-    return { success: false, error: (error as Error).message };
-  }
-};
-
-export const deleteProduct = async (id: string): Promise<{ success: boolean; error?: string }> => {
-  try {
-    const docRef = doc(db, 'products', id);
-    await deleteDoc(docRef);
-
-    return { success: true };
-  } catch (error) {
-    console.error(`Error deleting product (${id}):`, error);
-    return { success: false, error: (error as Error).message };
-  }
-};
-
-export const getProductsByPriceRange = async (minPrice: number, maxPrice: number): Promise<{ success: boolean; products: Product[]; error?: string }> => {
-  try {
-    const q = query(
-      collection(db, 'products'),
-      where('price', '>=', minPrice),
-      where('price', '<=', maxPrice),
-      where('isActive', '==', true),
-      orderBy('price', 'asc')
-    );
-
-    const snapshot = await getDocs(q);
-
-    const products: Product[] = [];
-    snapshot.forEach((doc) => {
-      const data = convertTimestamps(doc.data());
-      products.push({ id: doc.id, ...data } as Product);
-    });
-
-    return { success: true, products };
-  } catch (error) {
-    console.error(`Error getting products by price range (${minPrice}-${maxPrice}):`, error);
-    return { success: false, products: [], error: (error as Error).message };
+    console.error('Error searching products:', error);
+    throw error;
   }
 };
