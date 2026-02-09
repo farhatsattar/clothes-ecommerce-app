@@ -271,10 +271,10 @@ export const searchProducts = async (
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       allProducts = allProducts.filter(product =>
-        product.name.toLowerCase().includes(term) ||
-        product.description.toLowerCase().includes(term) ||
-        product.tags?.some(tag => tag.toLowerCase().includes(term)) ||
-        product.category.toLowerCase().includes(term)
+        (product.name ?? '').toLowerCase().includes(term) ||
+        (product.description ?? '').toLowerCase().includes(term) ||
+        product.tags?.some(tag => (tag ?? '').toLowerCase().includes(term)) ||
+        (product.category ?? '').toLowerCase().includes(term)
       );
     }
 

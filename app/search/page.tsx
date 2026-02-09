@@ -4,12 +4,13 @@ import ProductCard from '@/components/products/ProductCard';
 import { searchProducts } from '@/lib/services/products';
 
 interface SearchPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 async function SearchPage({ searchParams }: SearchPageProps) {
-  const searchTerm = Array.isArray(searchParams.q) ? searchParams.q[0] : searchParams.q;
-  const category = Array.isArray(searchParams.category) ? searchParams.category[0] : searchParams.category;
+  const params = await searchParams;
+  const searchTerm = Array.isArray(params.q) ? params.q[0] : params.q;
+  const category = Array.isArray(params.category) ? params.category[0] : params.category;
 
   let products: Product[] = [];
   let error = null;
