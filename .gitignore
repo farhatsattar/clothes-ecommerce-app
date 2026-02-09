@@ -63,3 +63,13 @@ firebase-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Node
+node_modules/
+.next/
+.env
+.env.local
+.env.*.local
+
+# Firebase
+firebase-debug.log
