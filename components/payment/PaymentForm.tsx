@@ -147,13 +147,14 @@ const CheckoutForm: React.FC<PaymentFormProps> = ({
   return (
     <form onSubmit={handleSubmit}>
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Payment Information (Card only)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Payment (card only — Visa, Mastercard)</label>
         <div className="border p-4 rounded-md">
           <PaymentElement
             options={{
               paymentMethodOrder: ['card'],
               layout: 'tabs',
-            }}
+              wallets: 'never',
+            } as Record<string, unknown>}
           />
         </div>
       </div>

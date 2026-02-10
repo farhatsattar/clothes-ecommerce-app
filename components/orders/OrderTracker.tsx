@@ -25,7 +25,7 @@ const OrderTracker: React.FC<OrderTrackerProps> = ({ order }) => {
 
       <div className="mb-4">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-500">Order ID: {order.id}</span>
+          <span className="text-sm font-medium text-gray-500">Order #: {(order as Order & { orderNumber?: string }).orderNumber ?? order.id ?? '—'}</span>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
             order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
             order.status === 'processing' ? 'bg-blue-100 text-blue-800' :

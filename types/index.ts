@@ -74,6 +74,25 @@ export interface OrderItem {
 export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 export type Order = OrderData;
 
+// Order number system: customer-facing ID, not Firestore doc ID
+export type PaymentStatus = 'pending' | 'paid' | 'failed';
+export type OrderStatusStored = 'processing' | 'completed' | 'cancelled';
+
+/** Stored in top-level Firestore collection "orders". Doc ID is internal; use orderNumber for customers. */
+export interface OrderRecord {
+  orderNumber: string;
+  userId: string;
+  totalAmount: number;
+  paymentStatus: PaymentStatus;
+  orderStatus: OrderStatusStored;
+  items: OrderItem[];
+  shippingAddress: Address;
+  billingAddress?: Address | null;
+  notes?: string;
+  paymentMethod: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
 
 // Order interface based on data-model.md
 export interface OrderData {

@@ -40,6 +40,7 @@ const CheckoutPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'card'>('cod');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [cardClientSecret, setCardClientSecret] = useState<string | null>(null);
+  const [cardOrderNumber, setCardOrderNumber] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -104,6 +105,7 @@ const CheckoutPage: React.FC = () => {
           return;
         }
         setCardClientSecret(data.clientSecret);
+        if (data.orderNumber) setCardOrderNumber(data.orderNumber);
         setShowPaymentForm(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -156,7 +158,8 @@ const CheckoutPage: React.FC = () => {
 
   const handlePaymentSuccess = () => {
     clearCart();
-    router.push('/checkout/confirmation');
+    const query = cardOrderNumber ? `?orderNumber=${encodeURIComponent(cardOrderNumber)}` : '';
+    router.push(`/checkout/confirmation${query}`);
   };
 
   const handlePaymentError = (errorMessage: string) => {

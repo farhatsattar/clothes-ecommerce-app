@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/firebase-admin';
 import { createPaymentIntent } from '@/lib/services/stripe';
+import { createOrderWithNumber } from '@/lib/server/order-number';
 import type { OrderItem, Address } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -49,45 +50,52 @@ export async function POST(request: NextRequest) {
 
     const amountInCents = Math.round(amount);
 
-    // Create pending order in Firestore via Admin SDK (no sensitive data)
-    let orderId: string | null = null;
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
 
-    if (projectId && clientEmail && privateKeyRaw) {
-      const admin = await import('firebase-admin');
-      const { getFirestore } = await import('firebase-admin/firestore');
+    if (!projectId || !clientEmail || !privateKeyRaw) {
+      return NextResponse.json(
+        { success: false, error: 'Server misconfiguration: missing Firebase env' },
+        { status: 500 }
+      );
+    }
 
-      if (!admin.apps.length) {
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey: privateKeyRaw.replace(/\\n/g, '\n'),
-          }),
-        });
-      }
+    const admin = await import('firebase-admin');
+    const { getFirestore } = await import('firebase-admin/firestore');
 
-      const db = getFirestore(admin.app());
-      const now = new Date();
-      const orderRef = await db.collection('users').doc(uid).collection('orders').add({
-        userId: uid,
-        items: orderPayload.items,
-        shippingAddress: orderPayload.shippingAddress,
-        billingAddress: orderPayload.billingAddress ?? orderPayload.shippingAddress,
-        notes: orderPayload.notes ?? '',
-        paymentMethod: 'card',
-        totalAmount: orderPayload.totalAmount,
-        status: 'pending',
-        createdAt: now,
-        updatedAt: now,
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey: privateKeyRaw.replace(/\\n/g, '\n'),
+        }),
       });
-      orderId = orderRef.id;
+    }
+
+    const db = getFirestore(admin.app());
+    const orderResult = await createOrderWithNumber(db, {
+      userId: uid,
+      totalAmount: orderPayload.totalAmount,
+      paymentStatus: 'pending',
+      orderStatus: 'processing',
+      items: orderPayload.items,
+      shippingAddress: orderPayload.shippingAddress,
+      billingAddress: orderPayload.billingAddress ?? orderPayload.shippingAddress,
+      notes: orderPayload.notes ?? '',
+      paymentMethod: 'card',
+    });
+
+    if (!orderResult.success) {
+      return NextResponse.json(
+        { success: false, error: orderResult.error ?? 'Failed to create order' },
+        { status: 500 }
+      );
     }
 
     const result = await createPaymentIntent(amountInCents, receipt_email, {
-      metadata: orderId ? { orderId, userId: uid } : undefined,
+      metadata: { orderNumber: orderResult.orderNumber, userId: uid },
     });
 
     if (!result.success || !result.paymentIntent?.client_secret) {
@@ -100,7 +108,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       clientSecret: result.paymentIntent.client_secret,
-      orderId: orderId ?? undefined,
+      orderNumber: orderResult.orderNumber,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

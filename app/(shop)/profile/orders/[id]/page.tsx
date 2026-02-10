@@ -4,46 +4,65 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/lib/context/auth-context';
-import { getOrderById } from '@/firebase/orders';
-import { OrderData } from '@/types'; // ✅ OrderData use karo
+import { OrderItem, Address } from '@/types';
+
+interface MyOrderDetail {
+  orderNumber: string;
+  orderStatus: string;
+  paymentStatus: string;
+  totalAmount: number;
+  items: OrderItem[];
+  shippingAddress: Address;
+  paymentMethod?: string;
+  createdAt: Date | unknown;
+}
 
 const OrderDetailPage: React.FC = () => {
   const router = useRouter();
   const params = useParams();
-  const orderId = params?.id as string;
+  const orderNumber = params?.id as string;
 
   const { user } = useAuth();
-  const [order, setOrder] = useState<OrderData | null>(null);
+  const [order, setOrder] = useState<MyOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showAuthModal, setShowAuthModal] = React.useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setShowAuthModal(true);
+      setLoading(false);
+      return;
+    }
+
+    if (!orderNumber) {
+      setLoading(false);
       return;
     }
 
     const fetchOrder = async () => {
-      if (!orderId) return;
-
       try {
-        const res = await getOrderById(user.uid, orderId);
+        const token = await user.getIdToken();
+        const res = await fetch(`/api/my-orders/${encodeURIComponent(orderNumber)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
 
-        if (!res.success || !res.order) {
+        if (!res.ok || !data.success || !data.order) {
           router.replace('/profile/orders');
           return;
         }
 
-        setOrder(res.order); // ✅ SIMPLE & SAFE
+        setOrder(data.order);
       } catch (err) {
         console.error(err);
+        router.replace('/profile/orders');
       } finally {
         setLoading(false);
       }
     };
 
     fetchOrder();
-  }, [user, orderId, router]);
+  }, [user, orderNumber, router]);
 
   if (!user) {
     return (
@@ -62,7 +81,7 @@ const OrderDetailPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    router.push(`/login?redirect=${encodeURIComponent('/profile/orders/' + orderId)}`);
+                    router.push(`/login?redirect=${encodeURIComponent('/profile/orders/' + encodeURIComponent(orderNumber ?? ''))}`);
                     setShowAuthModal(false);
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -71,7 +90,7 @@ const OrderDetailPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    router.push(`/signup?redirect=${encodeURIComponent('/profile/orders/' + orderId)}`);
+                    router.push(`/signup?redirect=${encodeURIComponent('/profile/orders/' + encodeURIComponent(orderNumber ?? ''))}`);
                     setShowAuthModal(false);
                   }}
                   className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
@@ -86,7 +105,7 @@ const OrderDetailPage: React.FC = () => {
     );
   }
 
-  if (loading || !user)
+  if (loading)
     return (
       <MainLayout title="Order Details">
         <p>Loading...</p>
@@ -101,46 +120,56 @@ const OrderDetailPage: React.FC = () => {
     );
 
   return (
-    <MainLayout title={`Order ${order.id}`}>
+    <MainLayout title={`Order ${order.orderNumber}`}>
       <div className="max-w-5xl mx-auto py-10">
         <h1 className="text-3xl font-bold mb-6">Order Details</h1>
 
         <div className="border rounded p-6 space-y-4 bg-white shadow">
           <div className="flex justify-between">
-            <span>Order ID:</span>
-            <span className="font-semibold">{order.id}</span>
+            <span>Order #</span>
+            <span className="font-semibold">{order.orderNumber}</span>
           </div>
 
           <div className="flex justify-between">
             <span>Status:</span>
             <span className="font-semibold text-orange-600">
-              {order.status}
+              {(order.orderStatus ?? 'processing').toString().charAt(0).toUpperCase() +
+                (order.orderStatus ?? 'processing').toString().slice(1)}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Payment:</span>
+            <span className="font-semibold">
+              {(order.paymentStatus ?? 'pending').toString().charAt(0).toUpperCase() +
+                (order.paymentStatus ?? 'pending').toString().slice(1)}
             </span>
           </div>
 
           <div>
             <h2 className="font-semibold mt-4">Items:</h2>
             <ul className="list-disc list-inside">
-              {order.items.map((item, idx) => (
+              {(order.items ?? []).map((item, idx) => (
                 <li key={idx}>
-                  {item.name} ({item.selectedSize} / {item.selectedColor}) ×{' '}
-                  {item.quantity}
+                  {item.name} ({item.selectedSize} / {item.selectedColor}) × {item.quantity}
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="mt-4">
-            <h2 className="font-semibold">Shipping Address:</h2>
-            <p>
-              {order.shippingAddress.street}, {order.shippingAddress.city},{' '}
-              {order.shippingAddress.state}, {order.shippingAddress.country}
-            </p>
-          </div>
+          {order.shippingAddress && (
+            <div className="mt-4">
+              <h2 className="font-semibold">Shipping Address:</h2>
+              <p>
+                {order.shippingAddress.street}, {order.shippingAddress.city},{' '}
+                {order.shippingAddress.state}, {order.shippingAddress.country}
+              </p>
+            </div>
+          )}
 
           <div className="mt-4 flex justify-between font-bold text-lg">
             <span>Total:</span>
-            <span>${(order.totalAmount / 100).toFixed(2)}</span>
+            <span>${(Number(order.totalAmount) / 100).toFixed(2)}</span>
           </div>
         </div>
       </div>

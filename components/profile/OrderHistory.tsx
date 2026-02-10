@@ -30,11 +30,11 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ orders }) => {
       <div className="border-t border-gray-200">
         <ul className="divide-y divide-gray-200">
           {orders.map((order, index) => (
-            <li key={order.id || `order-${index}`} className="px-4 py-6 sm:px-6">
+            <li key={(order as Order & { orderNumber?: string }).orderNumber ?? order.id ?? `order-${index}`} className="px-4 py-6 sm:px-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <p className="text-sm font-medium text-gray-900">
-                    Order <span className="font-mono text-gray-500">#{order.id ? order.id.substring(0, 8) : 'N/A'}</span>
+                    Order <span className="font-mono text-gray-500">#{(order as Order & { orderNumber?: string }).orderNumber ?? (order.id ? order.id.substring(0, 8) : 'N/A')}</span>
                   </p>
                   <span className={`ml-4 inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium ${
                     order.status === 'delivered' ? 'bg-green-100 text-green-800' :

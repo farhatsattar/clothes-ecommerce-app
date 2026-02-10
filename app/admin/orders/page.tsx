@@ -43,12 +43,15 @@ const AdminOrdersPage = () => {
 
   const filteredOrders = filter === 'all'
     ? orders
-    : orders.filter(order => order.status === filter);
+    : orders.filter(order => (order as { orderStatus?: string; status?: string }).orderStatus === filter || (order as { orderStatus?: string; status?: string }).status === filter);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'paid': return 'bg-green-100 text-green-800';
+      case 'failed': return 'bg-red-100 text-red-800';
       case 'processing': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-green-100 text-green-800';
       case 'shipped': return 'bg-purple-100 text-purple-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
@@ -92,6 +95,7 @@ const AdminOrdersPage = () => {
               <option value="all">All Orders</option>
               <option value="pending">Pending</option>
               <option value="processing">Processing</option>
+              <option value="completed">Completed</option>
               <option value="shipped">Shipped</option>
               <option value="delivered">Delivered</option>
               <option value="cancelled">Cancelled</option>
@@ -103,19 +107,28 @@ const AdminOrdersPage = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order #</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
-                <tr key={`${order.userId}-${order.id}`}>
+              {filteredOrders.map((order) => {
+                const orderRecord = order as Order & { orderNumber?: string; paymentStatus?: string; orderStatus?: string };
+                const orderNumber = orderRecord.orderNumber ?? order.id ?? '—';
+                const paymentStatus = orderRecord.paymentStatus ?? 'pending';
+                const orderStatus = orderRecord.orderStatus ?? orderRecord.status ?? 'processing';
+                return (
+                <tr key={`${order.userId}-${order.id ?? orderNumber}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">#{order.id}</div>
+                    <div className="text-sm font-medium text-gray-900">{orderNumber}</div>
+                    {order.id && (
+                      <div className="text-xs text-gray-400" title="Firestore doc ID (admin only)">{order.id}</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">User {order.userId}</div>
@@ -127,12 +140,17 @@ const AdminOrdersPage = () => {
                     ${(order.totalAmount / 100).toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(paymentStatus)}`}>
+                      {paymentStatus.charAt(0).toUpperCase() + paymentStatus.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(orderStatus)}`}>
+                      {orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <a href={`/profile/orders/${order.id}`} className="text-indigo-600 hover:text-indigo-900 mr-3">
+                    <a href={order.id ? `/admin/orders/${encodeURIComponent(order.id)}` : '#'} className="text-indigo-600 hover:text-indigo-900 mr-3">
                       View
                     </a>
                     <button className="text-green-600 hover:text-green-900 mr-3">
@@ -143,7 +161,8 @@ const AdminOrdersPage = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -42,19 +42,32 @@ export async function GET() {
 
     const db = getFirestore(admin.app());
 
-    // Collection group query (no orderBy to avoid requiring a composite index)
-    const ordersSnap = await db.collectionGroup('orders').get();
+    // Top-level "orders" collection (orderNumber, paymentStatus, orderStatus); doc id is internal/admin only
+    const ordersSnap = await db.collection('orders').get();
 
-    const allOrders: Array<{ id: string; userId: string; createdAt: Date | unknown; updatedAt: Date | unknown; [key: string]: unknown }> = [];
+    const allOrders: Array<{
+      id: string;
+      orderNumber: string;
+      userId: string;
+      paymentStatus: string;
+      orderStatus: string;
+      totalAmount: number;
+      createdAt: Date | unknown;
+      updatedAt?: Date | unknown;
+      [key: string]: unknown;
+    }> = [];
 
     ordersSnap.docs.forEach((doc) => {
-      const userId = doc.ref.parent.parent?.id ?? '';
       const data = doc.data();
       const createdAt = data.createdAt?.toDate?.() ?? data.createdAt;
       const updatedAt = data.updatedAt?.toDate?.() ?? data.updatedAt;
       allOrders.push({
         id: doc.id,
-        userId,
+        orderNumber: data.orderNumber ?? '—',
+        userId: data.userId ?? '',
+        paymentStatus: data.paymentStatus ?? 'pending',
+        orderStatus: data.orderStatus ?? 'processing',
+        totalAmount: data.totalAmount ?? 0,
         ...data,
         createdAt,
         updatedAt,

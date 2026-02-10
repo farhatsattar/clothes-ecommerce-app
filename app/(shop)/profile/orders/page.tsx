@@ -4,64 +4,47 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/lib/context/auth-context';
-import { getUserOrders } from '@/firebase/orders';
-import { OrderData } from '@/types';
 import Link from 'next/link';
+
+interface MyOrder {
+  orderNumber: string;
+  orderStatus: string;
+  paymentStatus: string;
+  totalAmount: number;
+  createdAt: Date | unknown;
+  items?: unknown[];
+  shippingAddress?: unknown;
+}
 
 const OrdersPage: React.FC = () => {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [orders, setOrders] = useState<OrderData[]>([]);
+  const [orders, setOrders] = useState<MyOrder[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (loading) return; // wait for auth to load
-
-      if (!user) {
-        router.replace('/login?redirect=/profile/orders');
+      if (loading || !user) {
+        if (!user) router.replace('/login?redirect=/profile/orders');
         return;
       }
 
       try {
-        const response = await getUserOrders(user.uid); // ✅ returns { success, orders, error }
+        const token = await user.getIdToken();
+        const res = await fetch('/api/my-orders', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
 
-        if (!response.success) {
-          console.error('Failed to fetch orders:', response.error);
+        if (!data.success || !Array.isArray(data.orders)) {
           setOrders([]);
           return;
         }
 
-        // map the orders array
-        const mappedOrders: OrderData[] = response.orders.map((item: any) => ({
-          id: item.id,
-          userId: item.userId,
-          items: item.items || [],
-          totalAmount: item.totalAmount || 0,
-          status: (item.status || 'pending') as 'pending' | 'delivered' | 'cancelled',
-          shippingAddress: item.shippingAddress || {
-            street: '',
-            city: '',
-            state: '',
-            zipCode: '',
-            country: '',
-          },
-          billingAddress: item.billingAddress || {
-            street: '',
-            city: '',
-            state: '',
-            zipCode: '',
-            country: '',
-          },
-          paymentMethod: item.paymentMethod || '',
-          notes: item.notes || '',
-          createdAt: item.createdAt ? (item.createdAt.seconds ? new Date(item.createdAt.seconds * 1000) : new Date(item.createdAt)) : new Date(),
-          updatedAt: item.updatedAt ? (item.updatedAt.seconds ? new Date(item.updatedAt.seconds * 1000) : new Date(item.updatedAt)) : new Date(),
-        }));
-
-        setOrders(mappedOrders);
+        setOrders(data.orders);
       } catch (err) {
         console.error('Failed to fetch orders:', err);
+        setOrders([]);
       } finally {
         setPageLoading(false);
       }
@@ -88,26 +71,28 @@ const OrdersPage: React.FC = () => {
           <div className="space-y-4">
             {orders.map((order) => (
               <Link
-                key={order.id}
-                href={`/profile/orders/${order.id}`}
+                key={order.orderNumber}
+                href={`/profile/orders/${encodeURIComponent(order.orderNumber)}`}
                 className="block border rounded p-4 hover:shadow-md transition"
               >
                 <div className="flex justify-between">
-                  <span>Order ID: {order.id}</span>
+                  <span>Order #{order.orderNumber}</span>
                   <span
                     className={`font-semibold ${
-                      order.status === 'pending'
+                      order.orderStatus === 'processing' || order.orderStatus === 'pending'
                         ? 'text-orange-600'
-                        : 'text-green-600'
+                        : order.orderStatus === 'cancelled'
+                          ? 'text-red-600'
+                          : 'text-green-600'
                     }`}
                   >
-                    {order.status.charAt(0).toUpperCase() +
-                      order.status.slice(1)}
+                    {(order.orderStatus ?? 'processing').toString().charAt(0).toUpperCase() +
+                      (order.orderStatus ?? 'processing').toString().slice(1)}
                   </span>
                 </div>
                 <div className="mt-2 text-sm text-gray-600">
                   <span>
-                    Total: ${(order.totalAmount / 100).toFixed(2)}
+                    Total: ${(Number(order.totalAmount) / 100).toFixed(2)}
                   </span>
                 </div>
               </Link>
@@ -117,7 +102,6 @@ const OrdersPage: React.FC = () => {
       </div>
     </MainLayout>
   );
-
 };
 
 export default OrdersPage;
